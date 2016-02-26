@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name          = "fluent-plugin-http_file_upload"
-  spec.version       = "0.1.0"
+  spec.version       = "0.1.1"
   spec.authors       = ["TAGOMORI Satoshi"]
   spec.email         = ["tagomoris@gmail.com"]
 
