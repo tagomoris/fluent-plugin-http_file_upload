@@ -38,7 +38,7 @@ module Fluent
 
       @formatter = Plugin.new_formatter(@format)
       @formatter.configure(conf)
-      @client = HTTPClient.new(agent_name: @user_agent)
+      @client = HTTPClient.new(agent_name: @user_agent, default_header: @headers)
       # @client.debug_dev = $stderr
     end
 
@@ -54,7 +54,7 @@ module Fluent
         unless @parameters.empty?
           postdata = @parameters.merge(postdata)
         end
-        @client.post(@uri, postdata, @headers)
+        @client.post(@uri, postdata)
       end
     end
   end
