@@ -14,7 +14,7 @@ module Fluent
   end
 
   class HttpFileUploadOutput < BufferedOutput
-    Plugin.register_output('http_file_output', self)
+    Plugin.register_output('http_file_upload', self)
 
     include Fluent::SetTimeKeyMixin
 
