@@ -1,6 +1,7 @@
 require 'fluent/output'
 require 'fluent/mixin'
 
+require 'openssl'
 require 'uri'
 require 'httpclient'
 
@@ -25,6 +26,15 @@ module Fluent
     config_param :headers,    :hash, default: {}, desc: "Additional header fields for requests"
     config_param :parameters, :hash, default: {}, desc: "Additional form parameters (key-value pairs) for requests"
 
+    config_param :ssl_verify_mode, default: OpenSSL::SSL::VERIFY_PEER do |value|
+      case value.strip
+      when "none" then OpenSSL::SSL::VERIFY_NONE
+      when "peer" then OpenSSL::SSL::VERIFY_PEER
+      else
+        raise Fluent::ConfigError, "Unknown ssl_verify_mode '#{value.strip}' [none, peer]"
+      end
+    end
+
     desc "Filename in upload requests, formats for strftime available"
     config_param :filename, :string, default: "data.%Y-%m-%d-%M-%H-%S"
 
@@ -40,6 +50,9 @@ module Fluent
       @formatter.configure(conf)
       @client = HTTPClient.new(agent_name: @user_agent, default_header: @headers)
       # @client.debug_dev = $stderr
+      if @uri.start_with?("https://")
+        @client.ssl_config.verify_mode = @ssl_verify_mode
+      end
     end
 
     def format(tag, time, record)

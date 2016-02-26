@@ -34,6 +34,8 @@ Fluentd with this configuration will format records to plain text file as 1-line
 
 * uri (string)
   * Endpoint URI to send POST request (http or https) [required]
+* ssl\_verify\_mode (string)
+  * Boolean whether client will verify server certificates over SSL (none or peer) [default: peer]
 * param_name
   * POST request parameter name used for file uploading [default: `file`]
 * user_agent
