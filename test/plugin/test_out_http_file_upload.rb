@@ -1,5 +1,7 @@
 require 'helper'
 require 'time'
+require 'zlib'
+require 'stringio'
 
 class HttpFileUploadOutputTest < Test::Unit::TestCase
   # setup/teardown and tests of dummy server defined at the end of this class
@@ -28,6 +30,7 @@ CONF
     assert_equal "MyValue", d.instance.headers['My-Header']
     assert_equal "My Custom Value", d.instance.headers['My-Header-2']
     assert_equal "satoshi tagomori", d.instance.parameters['username']
+    assert_nil d.instance.compress
 
     assert d.instance.instance_eval{ @formatter }.is_a? Fluent::TextFormatter::JSONFormatter
   end
@@ -148,6 +151,32 @@ CONF
     d.run
     assert_equal "my name", @params['name']
     assert_equal "user@fluentd.org", @params['email']
+  end
+
+  def test_emit_with_compression
+    d = create_driver CONFIG + <<-CONF
+      compress gzip
+CONF
+    time = Time.parse("2016-02-24 16:20:30 -0800").to_i
+    row0 = {'f1' => 'data', 'f2' => 'value2', 'f3' => 'value3'}
+    row1 = {'f1' => 'data', 'f2' => 'value4', 'f3' => 'value4'}
+    row2 = {'f1' => 'data2', 'f2' => 'value5', 'f3' => 'value6'}
+    d.emit(row0, time)
+    d.emit(row1, time)
+    d.emit(row2, time)
+    d.run
+    assert @headers['user-agent'].start_with?('fluent-plugin-http_file_upload')
+    assert @params['file']
+    assert { @params['file'].name =~ /^data\.\d{4}(-\d{2}){5}\.gz$/ }
+    assert_equal 'application/octet-stream', @params['file'].type
+
+    io = StringIO.new(@params['file'].body)
+    Zlib::GzipReader.wrap(io) do |gz|
+      rows = gz.each_line.map{|line| JSON.parse(line)}
+      assert_equal row0, rows[0]
+      assert_equal row1, rows[1]
+      assert_equal row2, rows[2]
+    end
   end
 
   class FileEntry
