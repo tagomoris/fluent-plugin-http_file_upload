@@ -83,12 +83,7 @@ module Fluent
     def write_plain(chunk)
       filename = Time.now.strftime(@filename)
       chunk.open do |io|
-        io.singleton_class.class_eval{ define_method(:path){ filename } }
-        postdata = { @param_name => io }
-        unless @parameters.empty?
-          postdata = @parameters.merge(postdata)
-        end
-        @client.post(@uri, postdata)
+        upload(io, filename)
       end
     end
 
@@ -109,13 +104,31 @@ module Fluent
         log.warn "failed to execute gzip command: exit code '#{$?}'"
       end
       tmp.open
-      tmp.singleton_class.class_eval{ define_method(:path){ filename } }
-      postdata = { @param_name => tmp }
+      upload(tmp, filename)
+      tmp.close
+    end
+
+    StatDummy = Struct.new(:size)
+
+    def upload(io, filename)
+      stat_dummy = StatDummy.new(io.size)
+      io.singleton_class.class_eval{
+        define_method(:path){ filename }    # override path to feed specified filename to httpclient
+        define_method(:lstat){ stat_dummy } # override lstat to return chunk size only (lstat doesn't work for chunk buffer file)
+      }
+      postdata = { @param_name => io }
       unless @parameters.empty?
         postdata = @parameters.merge(postdata)
       end
-      @client.post(@uri, postdata)
-      tmp.close
+      res = @client.post(@uri, postdata)
+      if res.status == 200
+        log.info "upload success with code 200" # TODO: make this `debug`
+      else
+        log.error "failed to upload", uri: @uri, code: res.status, content: res.content
+        if res.status >= 500 && res.status < 600
+          raise "failed to upload with ServerError. retrying."
+        end
+      end
     end
   end
 end
