@@ -55,13 +55,10 @@ Fluentd with this configuration will format records to plain text file as 1-line
   * time_format: format string for time (using strftime) [default: ISO-8601 format]
   * utc: format time as UTC (exclusive with localtime) [default: false]
   * localtime: format time as local time (exclusive with utc) [default: true]
-
-## TODO
-
-* compression for uploaded file
-* gzip HTTP content body compression
-
-Pull requests are welcome!
+* compress
+  * Specify `gzip` if you want to upload files compressed by gzip
+  * `filename` will be suffixed with `.gz` automatically if this parameter specified
+  * (not well tested yet)
 
 ## Copyright
 
